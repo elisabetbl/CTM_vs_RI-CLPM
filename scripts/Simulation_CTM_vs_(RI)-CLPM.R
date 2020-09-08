@@ -27,8 +27,7 @@ library(xlsx)
 library(lavaan)
 
 #data
-setwd("V:/medewerkers/074008 Blok, E/Dysregulation/DTI_paper2/Data/")
-#setwd("~/Desktop/Simulatie_CTM/data/")
+setwd("CTM_vs_RI-CLPM/data/")
 df1 <- read.csv("CLPM_Simulation_Data_6y_9y_13y_Version_1.csv", sep = "|")
 df2 <- read.csv("CLPM_Simulation_Data_6y_9y_13y_Version_2.csv", sep = "|")
 df3 <- read.csv("CLPM_Simulation_Data_6y_9y_13y_Version_3.csv", sep = "|")
@@ -104,7 +103,7 @@ coefs_ML_nocovars_T1 <- results_ML_nocovars_T1[[4]][c(33:36),c(1:7)]
 coefs_ML_nocovars_T3 <- results_ML_nocovars_T3[[4]][c(33:36),c(1:7)]
 coefs_ML_nocovars_T7 <- results_ML_nocovars_T7[[4]][c(33:36),c(1:7)]
 
-setwd("V:/medewerkers/074008 Blok, E/Dysregulation/DTI_paper2/Outcomes/")
+setwd("CTM_vs_RI-CLPM/output/")
 
 write.xlsx(coefs_ML_nocovars_T1, "results_ML_nocovars.xlsx", sheetName = paste0(whichdf,"_T1"), append = T)
 write.xlsx(coefs_ML_nocovars_T3, "results_ML_nocovars.xlsx", sheetName = paste0(whichdf,"_T3"), append = T)
@@ -133,8 +132,6 @@ results_mid_nocovars_T7 <- summary(fit_mid_nocovars, timeinterval = 7)
 coefs_mid_nocovars_T1 <- results_mid_nocovars_T1[[6]][c(33:36),c(1:7)]
 coefs_mid_nocovars_T3 <- results_mid_nocovars_T3[[6]][c(33:36),c(1:7)]
 coefs_mid_nocovars_T7 <- results_mid_nocovars_T7[[6]][c(33:36),c(1:7)]
-
-setwd("V:/medewerkers/074008 Blok, E/Dysregulation/DTI_paper2/Outcomes/")
 
 write.xlsx(coefs_mid_nocovars_T1, "results_mid_nocovars.xlsx", sheetName = paste0(whichdf,"_T1"), append = T)
 write.xlsx(coefs_mid_nocovars_T3, "results_mid_nocovars.xlsx", sheetName = paste0(whichdf,"_T3"), append = T)
@@ -220,8 +217,6 @@ coefs_ML_T1 <- results_ML_T1[[5]][c(33:36),c(1:7)]
 coefs_ML_T3 <- results_ML_T3[[5]][c(33:36),c(1:7)]
 coefs_ML_T7 <- results_ML_T7[[5]][c(33:36),c(1:7)]
 
-setwd("V:/medewerkers/074008 Blok, E/Dysregulation/DTI_paper2/Outcomes/")
-
 write.xlsx(coefs_ML_T1, "results_ML.xlsx", sheetName = paste0(whichdf,"_T1"), append = T)
 write.xlsx(coefs_ML_T3, "results_ML.xlsx", sheetName = paste0(whichdf,"_T3"), append = T)
 write.xlsx(coefs_ML_T7, "results_ML.xlsx", sheetName = paste0(whichdf,"_T7"), append = T)
@@ -249,8 +244,6 @@ results_mid_T7 <- summary(fit_mid, timeinterval = 7)
 coefs_mid_T1 <- results_mid_T1[[7]][c(33:36),c(1:7)]
 coefs_mid_T3 <- results_mid_T3[[7]][c(33:36),c(1:7)]
 coefs_mid_T7 <- results_mid_T7[[7]][c(33:36),c(1:7)]
-
-setwd("V:/medewerkers/074008 Blok, E/Dysregulation/DTI_paper2/Outcomes/")
 
 write.xlsx(coefs_mid_T1, "results_mid.xlsx", sheetName = paste0(whichdf,"_T1"), append = T)
 write.xlsx(coefs_mid_T3, "results_mid.xlsx", sheetName = paste0(whichdf,"_T3"), append = T)
@@ -348,8 +341,6 @@ coefs_ML_resid_T1 <- results_ML_resid_T1[[4]][c(33:36),c(1:7)]
 coefs_ML_resid_T3 <- results_ML_resid_T3[[4]][c(33:36),c(1:7)]
 coefs_ML_resid_T7 <- results_ML_resid_T7[[4]][c(33:36),c(1:7)]
 
-setwd("V:/medewerkers/074008 Blok, E/Dysregulation/DTI_paper2/Outcomes/")
-
 write.xlsx(coefs_ML_resid_T1, "results_ML_resid.xlsx", sheetName = paste0(whichdf,"_T1"), append = T)
 write.xlsx(coefs_ML_resid_T3, "results_ML_resid.xlsx", sheetName = paste0(whichdf,"_T3"), append = T)
 write.xlsx(coefs_ML_resid_T7, "results_ML_resid.xlsx", sheetName = paste0(whichdf,"_T7"), append = T)
@@ -377,8 +368,6 @@ results_mid_resid_T7 <- summary(fit_mid_resid, timeinterval = 7)
 coefs_mid_resid_T1 <- results_mid_resid_T1[[6]][c(33:36),c(1:7)]
 coefs_mid_resid_T3 <- results_mid_resid_T3[[6]][c(33:36),c(1:7)]
 coefs_mid_resid_T7 <- results_mid_resid_T7[[6]][c(33:36),c(1:7)]
-
-setwd("V:/medewerkers/074008 Blok, E/Dysregulation/DTI_paper2/Outcomes/")
 
 write.xlsx(coefs_mid_resid_T1, "results_mid_resid.xlsx", sheetName = paste0(whichdf,"_T1"), append = T)
 write.xlsx(coefs_mid_resid_T3, "results_mid_resid.xlsx", sheetName = paste0(whichdf,"_T3"), append = T)
