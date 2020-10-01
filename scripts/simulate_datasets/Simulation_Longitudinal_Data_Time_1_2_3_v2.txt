@@ -1,0 +1,194 @@
+'''
+########################################################################################################################
+
+# This program
+
+# Author:       Tonya White, MD, PhD
+# Date:         9 May 2020
+# Location:     Rotterdam
+
+#      ________   O V E R V I E W   _________
+
+
+Overview of the entire dataset
+
+This program simulates three waves of longitudinal data, in this case it's more along the lines of cortical thickness. 
+There is also behavior and it is so programmed such that the behavior at the earlier time point has an influence on 
+downstream brain development. There are three waves of behavior, three waves of cortical thickness, and the covariates 
+that remain fixed over time, being sex, maternal education, and ethnicity.
+
+Male = 0 and Female = 1
+Education - 0 = low ; 1 = mid ; 2 = high
+Ethnicity - 0 = Dutch ; 1 = western, not Dutch ; 2 = non-westers, non-Dutch
+
+There are some important caveats about this program, which are listed below:
+_____________________________________________________________________________________________________________
+The cortical thickness follows a logrithmic tragectory rather than a linear trajectory. The reason is that there are 
+actually very few biological processes that follow linear trajectories. Certainly piecewise linear is possible.
+
+The age that the children were recruited differs between waves, however, the equation that is used to calculate the 
+cortical thickness at that age accounts for the time that the child is recruited. Thus, older children at the time of 
+recruitment will have larger cortical thickness.
+
+The behavior measure is modeled initially as a normal distribution, but then shifted and then all that are negative 
+are changed to be zero. This is to model the effect of most questionnaires. However, the full Gaussian model is used 
+in the synthesis model. Thus, there will be some effect that is lost in the skewing of the distribution.
+
+There is a non-linear relationship with maternal education and cortical thicnness, in which lower maternal education 
+will have a decrease on  decreased cortical thickness. A random number is generated between zero and 1 to determine 
+the group status of maternal education. However, the linear scale, not the group scale, is used to determine the decrease 
+of CT. In this linear relationship, the lower the education, the lower the CT.
+
+There is no primary relationship between ethnicity and the brain measures or behavior. There are secondary effects, 
+in that if someone is in a non-Dutch, non-Western group, they have a slightly higher probability of having lower maternal 
+education. This will then be attributed to lower education and not to race or ethnicity.
+
+The noise added to cortical thickness at each age range is Gaussian, but the effect can differ per wave. I made a change 
+so that the noise that that determines where an individual starts with respect to cortical thickness, will be associated 
+with their trajectory from that point on. However, there will be some noise and influence from other variables over time. 
+
+There is a shift in behavioral problems, so that more boys will show behavioral problems, such as is the case with 
+dysregulation and ASD, which was the why this simulated set was created.
+
+_______________________________________________________________________________________________________________
+'''
+
+
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+import pandas as pd
+
+
+# ____________________________________________________________________________________________________________
+
+# These are the variables that can be changed to alter the distribution
+# ____________________________________________________________________________________________________________
+
+n = 1000 # Sample size of the population 
+n_vars = 13
+pct_sex = .48            # Percent of the population that is female.
+thesh_beh = 0            # Truncate the normal distribution if below this value 
+beh_quest = 3            # standard deviation of the behavioral metric 
+sex_shift = 0.05         # amount of shift for greater behavioral problems in males or females, on the normal distribution
+sex_CT = 0.12            # Main effect of lower cortical thickness in girls
+t1_lr = 6                 # Lower age range for time 1 
+t1_r = 2               # Upper age range for time 1 
+t2_lr = 9                 # Lower age range for time 1 
+t2_r = 2                # Upper age range for time 1 
+t3_lr = 13                # Lower age range for time 1 
+t3_r = 2                # Upper age range for time 1
+t1_beh_stab = 4         # behavioral stability factor between time 1 and time 2 for the behavior
+t2_beh_stab = 5         # behavioral stability factor between time 2 and time 3 for the behavior
+pct_mid_educ = 0.2       # Percent at the low income scale
+pct_high_educ = 0.3      # Percent at the high income scale
+pct_nonwest = 0.3        # Percent of the population that are non-Dutch, non-Westers
+pct_dutch = 0.55          # Percent of the population that are Dutch
+shift_nonwest = 0.1      # percent decrease in education level for those of non-Dutch, non-Westers background
+midexp = 3               # This is the default start point for cortical thickness in the logrithmic equation
+ctnoise_t1 = .32         # Standard eeviation fo the noise at time 1, this caries through for all the measurements
+ctnoise_t2 = .05         # Standard eeviation fo the noise at time 2
+ctnoise_t3 = .05         # Standard eeviation fo the noise at time 3
+CT_shift = 1.2           # Standard cortical thickness shift to make the values somewhat higher
+roundshift = 0.75         # This is so that it will round to the nearest number rather than the lowest
+behshift = 0.0           # Shift in those who have behavioral problems
+edueffect = 0.2            # effect of education on the measurement, multiplication so zero would remove the effect of education
+beh_thresh_t1 = 10.0        # Z score at time 1 that if the behavior is greater than this point, then the random behavior at time 2 will be shifted upward. 
+beh_thresh_t2 = 10.0         # Z score at time 2 that if the behavior is greater than this point, then the random behavior at time 3 will be shifted upward.
+
+# Path to where the data will be stored
+simout = '/Users/twhite/Documents/MRI_data/python_in_isolation/Longitudinal_Simulated_Data_F6_F9_F13/CLPM_Simulation_Data_6y_9y_13y_Version_2.csv'
+
+# ____________________________________________________________________________________________________________
+
+# Now create and start building the array
+clpm = np.zeros([n,n_vars])
+
+# Create the ages for each individual, where they come to the center at random intervals between the range
+t1 = (((np.random.rand(n)) * t1_r) + t1_lr)
+t2 = (((np.random.rand(n)) * t2_r) + t2_lr)
+t3 = (((np.random.rand(n)) * t3_r) + t3_lr)
+ethn = np.random.rand(n)
+edu = np.random.rand(n)
+beh = np.random.randn(n)
+beh_t2 = np.random.randn(n)
+beh_t3 = np.random.randn(n)
+noiset1 = (np.random.randn(n)) * ctnoise_t1
+noiset2 = (np.random.randn(n)) * ctnoise_t2 
+noiset3 = (np.random.randn(n)) * ctnoise_t3  
+
+for i in range(n):
+    # Store the ID number as a variable
+    clpm[i,0] = i
+    # Store the three periods of ages
+    clpm[i,1] = t1[i]
+    clpm[i,2] = t2[i]
+    clpm[i,3] = t3[i]
+    # Calculate the sex of the individual, it's all chance of which sperm reaches the egg anyway, right! 
+    clpm[i,10] = np.random.binomial(1,pct_sex)
+    # Calculate the education variable from the random number generator
+    # Estimate the lower education level for non Dutch individuals
+    if ethn[i] < pct_nonwest:
+        edu[i] = edu[i] - shift_nonwest
+    # Define the level for the education
+    if edu[i] > pct_mid_educ:
+        clpm[i,11] = 1
+    if edu[i] > (pct_mid_educ + pct_high_educ):
+        clpm[i,11] = 2
+    # Calculate the ethnicity data from the random number generator
+    if ethn[i] > pct_nonwest:
+        clpm[i,12] = 1
+    if ethn[i] > (pct_dutch + pct_nonwest):
+        clpm[i,12] = 2
+    # Now calculate the behavior measures at the different time points
+    # If male increase the behavioral problem scale... so is it for dysregulation and ASD... Sorry boys!
+    if clpm[i,10] == 0:
+        beh[i] = beh[i] + sex_shift
+    b1 = beh[i]                                     # The coninuious measure of behavior is used for the analyses
+    b1adj = (beh[i] + roundshift) * beh_quest
+    if b1adj < 0:
+        bint = 0
+    else:
+        bint = int(b1adj)
+    clpm[i,4] = float(bint)
+    # Store the Cortical thickness for the first time point, just use the age and mean correction factor.
+    d1 = (edu[i] * edueffect) + midexp
+    clpm[i,7] = math.log1p(t1[i] + d1) + noiset1[i] + CT_shift
+    if clpm[i,10] != 0:
+        clpm[i,7] = clpm[i,7] - sex_CT 
+    # Now figure out the cortical thickness at age 9 to 11, given the behavior problems at 6
+    if b1 > beh_thresh_t1:
+        beh_t2[i] = beh_t2[i] + behshift
+    b2 = (((beh_t2[i] * t1_beh_stab) + b1) / (t1_beh_stab + 1))
+    d2 = (midexp) + (edu[i] * edueffect)
+    clpm[i,8] = math.log1p(t2[i] + d2) + noiset1[i] + noiset2[i] + CT_shift
+    if clpm[i,10] != 0:
+        clpm[i,8] = clpm[i,8] - sex_CT
+    # Now store the behavioral measure for the second wave, after creating a floor effect
+    b2a = (b2 + roundshift) * beh_quest
+    if b2a < 0:
+        b2a = 0
+    clpm[i,5] = int(b2a)
+    # Now figure out the cortical thickness at age 13 to 15, given the behavior problems at 6 and at age 9 to 11
+    if b2 > beh_thresh_t2:
+        beh_t3[i] = beh_t3[i] + behshift
+    b3 = (((beh_t3[i] * t2_beh_stab) + b2) / (t1_beh_stab + 1))
+    d3 = (midexp) + (edu[i] * edueffect)
+    clpm[i,9] = math.log1p(t3[i] + d3) + noiset1[i] + noiset3[i] + CT_shift
+    if clpm[i,10] != 0:
+        clpm[i,9] = clpm[i,9] - sex_CT
+    # Now store the behavioral measure for the second wave, after creating a floor effect
+    b3a = (b3 + roundshift) * beh_quest
+    if b3a < 0:
+        b3a = 0
+    clpm[i,6] = int(b3a)
+
+# Create the pandas data frame that will be saved out with all the data
+clpm_simdat = pd.DataFrame({'ID' : clpm[:,0], 'Age_06' : clpm[:,1], 'Age_09' : clpm[:,2], 'Age_13' : clpm[:,3], 'Beh_06' : clpm[:,4], 
+'Beh_09' : clpm[:,5], 'Beh_13' : clpm[:,6], 'CT_06' : clpm[:,7], 'CT_09' : clpm[:,8], 'CT_13' : clpm[:,9], 'sex' : clpm[:,10],
+'education' : clpm[:,11], 'ethnicity' : clpm[:,12]})
+
+pd.DataFrame.to_csv(clpm_simdat, simout, sep = '|', index = False)
+
+
