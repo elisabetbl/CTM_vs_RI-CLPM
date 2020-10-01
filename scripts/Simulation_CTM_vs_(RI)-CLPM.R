@@ -15,6 +15,9 @@
 #'1.3    Time-independent predictors residualized before CTM
 #'1.3.1  Maximum likelihood, no priors specified
 #'1.3.2  Maximum likelihood, including priors
+#'1.4    Model including time-independent predictors (multiple categories in 1 variable)
+#'1.4.1  Maximum likelihood, no priors specified
+#'1.4.2  Maximum likelihood, including priors
 #'2.     Cross-lagged panel model (CLPM)
 #'2.1    No random intercept (no distinction of within and between participant effects)
 #'2.2    Random intercept CLPM
@@ -230,7 +233,7 @@ dev.off()
 
 
 ###############################################
-##### 1.1.2 MAXIMUM LIKELIHOOD AND PRIORS #####
+##### 1.2.2 MAXIMUM LIKELIHOOD AND PRIORS #####
 ###############################################
 
 fit_mid <-ctStanFit(datalong = df_fin, ctstanmodel = model, nopriors = F, cores = "maxneeded")
@@ -378,6 +381,109 @@ write.xlsx(coefs_mid_resid_T7, "results_mid_resid.xlsx", sheetName = paste0(whic
 jpeg(file=paste0(whichdf,"plot_mid_resid.jpeg"))
 ctStanDiscretePars(fit_mid_resid, plot = T, indices = "all", subjects = "all", times = seq(from = 0, to = 8, by = 1))
 dev.off()
+
+
+#########################################################
+##### 1.4 CTM INCLUDING TIME INDEPENDENT PREDICTORS #####
+##### MULTIPLE CATEGORIES IN ONE VARIABLE FOR TI's  #####
+#########################################################
+
+#Preparing the data so that ctsem recognizes it
+#order and rename data
+df_order <- select(df, ID, Beh_06, CT_06, Beh_09, CT_09, Beh_13, CT_13, Age_06, Age_09, Age_13, sex, education, ethnicity)
+colnames(df_order) <- c("ID", "Beh_T0", "CT_T0", "Beh_T1", "CT_T1", "Beh_T2", "CT_T2", "T0", "T1", "T2", "sex", "education", "ethnicity")
+
+#Change time variables
+#Mean center T0
+df_order$MC_T0 <- df_order$T0 - mean(df_order$T0)
+df_order$time_T0 <- df_order$MC_T0 - min(df_order$MC_T0)
+#Create time difference
+df_order$dT1 <- df_order$T1 - df_order$T0
+df_order$dT2 <- df_order$T2 - df_order$T1
+#Calculate T1 & T2 
+df_order$time_T1 <- df_order$time_T0 + df_order$dT1
+df_order$time_T2 <- df_order$time_T1 + df_order$dT2
+
+#Transform DP & CT To approach normality and then scale all time dependent predictors
+df_order$Beh_T0 <- scale(sqrt(df_order$Beh_T0))
+df_order$Beh_T1 <- scale(sqrt(df_order$Beh_T1))
+df_order$Beh_T2 <- scale(sqrt(df_order$Beh_T2))
+df_order$CT_T0 <- scale(df_order$CT_T0)
+df_order$CT_T1 <- scale(df_order$CT_T1)
+df_order$CT_T2 <- scale(df_order$CT_T2)
+
+#Select columns
+df_order_com <- select(df_order, c("ID", "Beh_T0", "CT_T0", "Beh_T1", "CT_T1", "Beh_T2", "CT_T2", "time_T0", "time_T1", "time_T2", "sex", "education", "ethnicity"))
+
+#create dataset appropriate for ctsem
+df_long <- pivot_longer(df_order_com, -c(ID, sex, education, ethnicity), names_to = c("variable", "timepoint"), values_to = c("value"), names_pattern = "(.*)_(.*)")
+df_wide <- pivot_wider(df_long, names_from = c("variable"), values_from = c("value"))
+df_fin <- select(df_wide, c(ID, Beh, CT, time, sex, education, ethnicity))
+df_fin <- as.matrix(df_fin)
+
+#Random intercept continuous time model
+model_mc <- ctModel(type = "stanct",
+                 time = "time", id = "ID",
+                 n.latent = 2, latentNames = c("Beh", "CT"),
+                 n.manifest = 2, manifestNames = c("Beh", "CT"),
+                 n.TDpred = 0,
+                 n.TIpred = 3, TIpredNames = c("sex", "education", "ethnicity"),
+                 LAMBDA = diag(2))
+
+###############################################
+##### 1.4.1 MAXIMUM LIKELIHOOD, NO PRIORS #####
+###############################################
+
+fit_ML_mc<-ctStanFit(datalong = df_fin, ctstanmodel = model_mc, nopriors = T, cores = "maxneeded")
+
+#check results
+#Mean dT1 = 3 years, mean 3T2 = 4 years, time intervals are chosen based on this
+results_ML_T1_mc <- summary(fit_ML_mc, timeinterval = 1)
+results_ML_T3_mc <- summary(fit_ML_mc, timeinterval = 3)
+results_ML_T7_mc <- summary(fit_ML_mc, timeinterval = 7)
+
+coefs_ML_T1_mc <- results_ML_T1_mc[[5]][c(33:36),c(1:7)]
+coefs_ML_T3_mc <- results_ML_T3_mc[[5]][c(33:36),c(1:7)]
+coefs_ML_T7_mc <- results_ML_T7_mc[[5]][c(33:36),c(1:7)]
+
+write.xlsx(coefs_ML_T1_mc, "results_ML_mc.xlsx", sheetName = paste0(whichdf,"_T1"), append = T)
+write.xlsx(coefs_ML_T3_mc, "results_ML_mc.xlsx", sheetName = paste0(whichdf,"_T3"), append = T)
+write.xlsx(coefs_ML_T7_mc, "results_ML_mc.xlsx", sheetName = paste0(whichdf,"_T7"), append = T)
+
+
+#Plot results
+jpeg(file=paste0(whichdf,"_plot_ML_mc.jpeg"))
+ctStanDiscretePars(fit_ML_mc, plot = T, indices = "all", subjects = "all", times = seq(from = 0, to = 8, by = 1))
+dev.off()
+
+
+
+###############################################
+##### 1.4.2 MAXIMUM LIKELIHOOD AND PRIORS #####
+###############################################
+
+fit_mid_mc <-ctStanFit(datalong = df_fin, ctstanmodel = model_mc, nopriors = F, cores = "maxneeded")
+
+#check results
+#Mean dT1 = 3 years, mean dT2 = 4 years, time intervals are chosen based on this
+results_mid_T1_mc <- summary(fit_mid_mc, timeinterval = 1)
+results_mid_T3_mc <- summary(fit_mid_mc, timeinterval = 3)
+results_mid_T7_mc <- summary(fit_mid_mc, timeinterval = 7)
+
+coefs_mid_T1_mc <- results_mid_T1_mc[[7]][c(33:36),c(1:7)]
+coefs_mid_T3_mc <- results_mid_T3_mc[[7]][c(33:36),c(1:7)]
+coefs_mid_T7_mc <- results_mid_T7_mc[[7]][c(33:36),c(1:7)]
+
+write.xlsx(coefs_mid_T1_mc, "results_mid_mc.xlsx", sheetName = paste0(whichdf,"_T1"), append = T)
+write.xlsx(coefs_mid_T3_mc, "results_mid_mc.xlsx", sheetName = paste0(whichdf,"_T3"), append = T)
+write.xlsx(coefs_mid_T7_mc, "results_mid_mc.xlsx", sheetName = paste0(whichdf,"_T7"), append = T)
+
+
+#Plot results
+jpeg(file=paste0(whichdf,"_plot_mid_mc.jpeg"))
+ctStanDiscretePars(fit_mid_mc, plot = T, indices = "all", subjects = "all", times = seq(from = 0, to = 8, by = 1))
+dev.off()
+
 
 
 
